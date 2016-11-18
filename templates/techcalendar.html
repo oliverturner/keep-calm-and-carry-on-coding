@@ -1,0 +1,246 @@
+{% extends "layout.html" %} {% block content %}
+<a href="#" class="navigation__trigger">
+  <img src="/static/img/icon1.png" />
+</a>
+<ul class="nav">
+  <li class="nav__list"><a class="nav__list__item" href="{{ url_for('index') }}">HOME</a></li>
+  <li class="nav__list"><a class="nav__list__item" href="{{ url_for('about') }}">ABOUT</a></li>
+  <li class="nav__list"><a class="nav__list__item" href="{{ url_for('events') }}">EVENTS</a></li>
+  <li class="nav__list"><a class="nav__list__item" href="{{ url_for('techcalendar') }}">FIND YOUR CROWD</a></li>
+</ul>
+
+<div id="wrapper">
+  <article class="left-panel">
+    <div class="map">
+      <div id="map__container"></div>
+      <div id="map__zoom-in"></div>
+      <div id="map__zoom-out"></div>
+    </div>
+  </article>
+  <aside class="right-panel">
+    <h3 class="right-panel__title">Women-Friendly Meetups</h3>
+    <div class="right-panel__content">
+      {% for event in events %}
+      <div class="meetup-info">
+        <h4 class="meetup-info__title">
+		<a class="meetup-info__link" href = "{{ event['event_url'] }}/">{{ event['name'] }}</a>
+		</h4>
+        <p class="meetup-info__date">{{ event['time'] }}</p>
+        <p class="meetup-info__organiser">{{ event ['group']['name'] }}</p>
+        <p class="meetup-info__link"><a class="meetup-info__link" href="{{ event['event_url'] }}/"><i class="fa fa-arrow-right" aria-hidden="true"></i></a></p>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{google_api_key}}&callback=initMap"></script>
+<script src="static/js/main.js"></script>
+<script>
+    var latitude = 51.5076017,
+      longitude = -0.1278165,
+      map_zoom = 11;
+
+    var main_color = 'black',
+      saturation_value = -100,
+      brightness_value = 5,
+	    mapColor = '#1e1f33';
+
+    var style = [{
+		"featureType":"landscape",
+		"elementType":"geometry.fill",
+		"stylers":[{
+			"color": mapColor
+		}]
+		},{
+		"featureType":"water",
+		"elementType":"geometry",
+		"stylers":[{
+			"color": mapColor},{"lightness":-21}]
+		},{
+		"featureType":"road","elementType":"geometry","stylers": [{"color": mapColor},{"lightness":-10}]
+		},{
+		"featureType":"poi",
+		"elementType":"geometry",
+		"stylers":[{
+			"color": mapColor},{"weight":0.1},{"lightness":-5}]
+		},{
+		"featureType":"administrative",
+		"elementType":"labels.text.stroke",
+		"stylers":[{
+			"color": mapColor},{"lightness":-30}]
+		},{
+		"featureType":"administrative",
+		"elementType":"labels.text.fill",
+		"stylers":[{
+			"color": mapColor},{"lightness":40}]
+		},{
+		"featureType":"road",
+		"elementType":"labels.text.stroke",
+			"stylers":[{
+			"visibility": "off"}]
+		},{
+		"featureType":"road",
+		"elementType":"labels.text.fill",
+		"stylers":[{
+			"color": mapColor},{"lightness":9}]
+		},{
+		"featureType":"water","elementType":"labels.text.stroke",
+		"stylers":[{
+			"visibility": "off"}]
+		},{
+		"featureType":"water","elementType":"labels.text.fill",
+		"stylers":[{
+			"visibility": "off"}]
+		},{
+		"featureType": "poi",
+		"stylers": [{
+			"visibility": "off" }]
+		},{
+		"featureType":"transit.line",
+		"elementType":"all",
+		"stylers":[{
+			"visibility":"off"}]
+		},{
+		"featureType":"landscape",
+		"elementType":"labels.text.fill",
+		"stylers":[{
+			"color": mapColor},{"lightness":-90}]
+		},{
+		"featureType":"landscape",
+		"elementType":"labels.text.stroke",
+		"stylers":[{
+			"color": mapColor},{"weight":5.21},{"lightness":20}]
+		},{
+		"featureType":"transit.station",
+		"elementType":"all",
+		"stylers":[{
+			"visibility":"off"}]
+		},{
+		"featureType":"road.highway",
+		"elementType":"labels",
+		"stylers":[{
+			"visibility":"off"}]
+		},{
+		"featureType":"administrative.country",
+		"elementType":"geometry.stroke",
+		"stylers":[{
+			"color": mapColor},{"lightness":21}]
+		}
+	];
+
+    var map_options = {
+      center: new google.maps.LatLng(latitude, longitude),
+      zoom: map_zoom,
+      panControl: false,
+      zoomControl: false,
+      mapTypeControl: false,
+      streetViewControl: false,
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      scrollwheel: false,
+      styles: style
+    }
+
+		map = new google.maps.Map(document.getElementById('map__container'), map_options);
+
+    var groupNames = [];
+
+	{% for event in events %}
+    if( groupNames.indexOf('{{event['group']['name']}}') == -1){
+      groupNames.push('{{event['group']['name']}}')
+    }
+  {% endfor %}
+
+    var groupNameColors = [];
+
+    function getRandomColor() {
+      var letters = '0123456789ABCDEF';
+      var color = '#';
+      for (var i = 0; i < 6; i++ ) {
+          color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    for (var i =0; i<groupNames.length; i++) {
+      groupNameColors.push(getRandomColor())
+    }
+
+  function createMarkers(events) {
+    var markers = [];
+    events.events.forEach(function(e, index) {
+      var colorIndex = groupNames.indexOf(e.group.name);
+
+      // If the venue and the lat/lon for the venue are defined
+      if (e.venue && e.venue.lat && e.venue.lon) {
+        // then create a marker
+        markers[index] = new google.maps.Marker({
+          position: new google.maps.LatLng(e.venue.lat, e.venue.lon),
+          animation: google.maps.Animation.DROP,
+          map: map,
+          title: e.name,
+          visible: true,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: groupNameColors[colorIndex],
+            fillOpacity: 0.7,
+            strokeWeight: 0
+          }
+        });
+
+        var contentString = '<div id="content" style="overflow-y:hidden;background:transparent ! important; padding-left=20px !important;">' +
+          '<h4 style="color:rgba(0,0,0, 0.8);font:12px;>'+ e.name +'</h4>' +
+          '<h4 style="color:rgba(0,0,0, 0.8);font:12px;">'+ new Date(e.time) +'</h4>'  +
+          '<h4 style="color:rgba(0,0,0, 0.8);font:12px;">'+ e.group.name +'</h4>'  +
+          '<a style="color:rgba(0,0,0, 0.8);font:12px;text-decoration:none;padding-top:10px; padding-bottom:20px;" href="'+ e.event_url +'">' + e.event_url +
+          '</a>'
+          '</div>';
+
+        addInfoWindow(markers[index], contentString);
+      }
+    });
+  }
+
+  var open_info_window = null;
+  function addInfoWindow(marker, contentString) {
+    var infoWindow = new google.maps.InfoWindow({
+      content: contentString
+    });
+
+    google.maps.event.addListener(marker, 'click', function () {
+        if(open_info_window)  open_info_window.close();
+        open_info_window = infoWindow;
+        infoWindow.open(map, marker);
+    });
+  }
+
+	function CustomZoomControl(controlDiv, map) {
+  	var controlUIzoomIn= document.getElementById('map__zoom-in'),
+	  		controlUIzoomOut= document.getElementById('map__zoom-out');
+	 	controlDiv.appendChild(controlUIzoomIn);
+	 	controlDiv.appendChild(controlUIzoomOut);
+
+		google.maps.event.addDomListener(controlUIzoomIn, 'click', function() {
+	    map.setZoom(map.getZoom()+1)
+		});
+		google.maps.event.addDomListener(controlUIzoomOut, 'click', function() {
+	    map.setZoom(map.getZoom()-1)
+		});
+	}
+
+	var zoomControlDiv = document.createElement('div');
+ 	var zoomControl = new CustomZoomControl(zoomControlDiv, map);
+
+ 	map.controls[google.maps.ControlPosition.LEFT_TOP].push(zoomControlDiv);
+
+  // Request the JSON object of all events from the techcalendar.json endpoint
+  var jqxhr = $.getJSON("techcalendar.json", function(events) {
+    // This is excecuted only when /techcalendar.json response is returned
+    // `events` variable contain all events
+
+    createMarkers(events);
+  });
+</script>
+{% endblock %}
